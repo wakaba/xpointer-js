@@ -1,55 +1,39 @@
-dl.dom-interface-definition {
+dl.xpointer-scheme-definition {
   display: block;
+  border-style: none;
+  background-color: rgb(221, 238, 255);
+  color: black;
 }
 
-dl.dom-interface-definition dl {
+.xpointer-scheme-definition dt {
+  display: block;
+  float: left;
+  clear: both;
   margin: 0;
-  padding: 0;
+  border-style: none;
+  padding: 0.5em 0.7em;
+  width: 10em;
+  list-style: none;
+  font-weight: normal;
+}
+.xpointer-scheme-definition dt:after {
+  content: " : ";
+  display: inline;
 }
 
-dl.dom-interface-definition dt {
+.xpointer-scheme-definition dd {
   display: block;
-  margin-left: 0;
-  padding-left: 0;
-  font-weight: bolder;
+  margin: 0 0 0 2em;
+  border-style: none;
+  padding: 0.5em 0.7em;
+  min-height: 4em;
+  list-style: none;
+  font-weight: normal;
 }
 
-dl.dom-interface-definition dd {
-  display: block;
-  margin-left: 3em;
-  padding-left: 0;
+.xpointer-scheme-definition dl + * {
+  clear: both;
 }
-
-.dom-interface-definition dt .DOMa {
-  color: black;
-  background-color: #FFFFD2;
-}
-.dom-interface-definition dt .DOM .const {
-  color: black;
-  background-color: #DDFFD2;
-}
-.dom-interface-definition dt .DOMm {
-  color: black;
-  background-color: #D9E6F8;
-}
-.dom-interface-definition dt .DOMp {
-  background-color: #FEE6F8; 
-  color: black;
-}
-
-.dom-interface-idl-definition pre {
-  border: 1px solid black;
-  padding: 2em 3em;
-  background-color: #dfdfdf;
-  color: black;
-  white-space: pre;
-  font-family: monospace;
-}
-
-.dom-interface-definition p:first-child {
-  text-indent: 0;
-}
-
 
 /* Revision: $Date: 2005/03/14 00:40:15 $ */
 
