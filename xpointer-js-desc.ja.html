@@ -1,0 +1,798 @@
+<html xmlns="http://www.w3.org/1999/xhtml" lang="ja" xml:lang="ja">
+<head profile="http://suika.fam.cx/~wakaba/-temp/wiki/wiki?WikiHTMLMetaProfile">
+<title>JavaScript (ECMAScript) による XPointer の実装</title>
+<link rel="copyright" href="#LICENSE" />
+<link rev="made" href="http://suika.fam.cx/~wakaba/who?" />
+<meta name="author" content="わかば" />
+<link rel="stylesheet" href="/www/style/html/xhtml" media="all" />
+<link rel="stylesheet" href="toc-after-abstract" media="all" />
+<link rel="stylesheet" href="dom-style" media="all" />
+</head>
+<body>
+<h1><span xml:lang="en" lang="en">JavaScript</span> 
+(<span xml:lang="en" lang="en">ECMAScript</span>) による 
+<abbr xml:lang="en" lang="en" title="XML Pointer Language">XPointer</abbr> 
+の実装</h1>
+
+<div class="section" id="ABSTRACT">
+<h2>概要</h2>
+<p>この文書では、 <span xml:lang="en" lang="en">JavaScript</span>
+を使った <abbr xml:lang="en" lang="en" title="XML Pointer Language">XPointer</abbr>
+の実装を紹介します。</p>
+</div>
+
+<div class="section" id="INTRO">
+<h2>はじめに</h2>
+
+<p>
+<abbr xml:lang="en" lang="en" title="XML Pointer Language">XPointer</abbr>
+は <abbr lang="en" xml:lang="en" title="Extensible Markup Language">XML</abbr>
+の素片識別子などとして使うことが想定された<a href="http://www.w3.org/TR/2003/REC-xptr-framework-20030325/#dt-pointer">指示子</a>です。
+<abbr xml:lang="en" lang="en" title="XML Pointer Language">XPointer</abbr>
+の構文には、識別子を使って要素を識別する<a href="http://www.w3.org/TR/2003/REC-xptr-framework-20030325/#shorthand">速記指示子</a>と、
+<a href="http://www.w3.org/TR/2003/REC-xptr-framework-20030325/#dt-scheme" lang="en" xml:lang="en">scheme</a>
+によって文書の任意の部分資源を識別できる構文の2種類があります。
+</p>
+
+<p>
+この文書で紹介するのは、 <span xml:lang="en" lang="en">JavaScript</span>
+を使った <abbr xml:lang="en" lang="en" title="XML Pointer Language">XPointer</abbr>
+の実装とその界面です。このスクリプトを使えば、
+<abbr xml:lang="en" lang="en" title="Hypertext Markup Language">HTML</abbr> や
+<abbr lang="en" xml:lang="en" title="Extensible Markup Language">XML</abbr>
+の文書で <abbr xml:lang="en" lang="en" title="XML Pointer Language">XPointer</abbr> 
+指示子を評価させることができます。
+</p>
+
+<p>
+<abbr xml:lang="en" lang="en" title="XML Pointer Language">XPointer</abbr>
+では <a href="http://www.w3.org/TR/2003/REC-xptr-framework-20030325/#dt-scheme" lang="en" xml:lang="en">scheme</a>
+は拡張可能に定義されています。このスクリプトでは簡単に
+<a href="http://www.w3.org/TR/2003/REC-xptr-framework-20030325/#dt-scheme" lang="en" xml:lang="en">scheme</a>
+の処理を実装することができます。
+</p>
+
+</div><!-- #INTRO -->
+
+<div class="section" id="API">
+<h2>界面</h2>
+
+<p>
+<a href="xpointer.js" type="application/x-javascript"><code lang="en" 
+xml:lang="en">xpointer.js</code></a> は次の界面により
+<abbr xml:lang="en" lang="en" title="XML Pointer Language">XPointer</abbr>
+を実装しています。また、予め<a href="http://www.w3.org/TR/2003/REC-xptr-framework-20030325/#shorthand">速記指示子</a>と
+<a href="http://www.w3.org/TR/2003/REC-xptr-framework-20030325/#dt-scheme"><abbr xml:lang="en" lang="en" title="XML Pointer Language">XPointer</abbr> <span lang="en" xml:lang="en">scheme</span></a>
+として <a href="http://www.w3.org/TR/2003/REC-xptr-element-20030325/"><code class="XPointerScheme" xml:lang="en" lang="en">element()</code></a> および
+<a href="http://www.w3.org/TR/2003/REC-xptr-xmlns-20030325/"><code class="XPointerScheme" xml:lang="en" lang="en">xmlns()</code></a> に対応しています。
+<a href="#DOM-IF-XPOINTERSCHEMEPROCESSOR"><code class="DOMi" xml:lang="en" lang="en">XPointerSchemeProcessor</code></a>
+を使えば更に他の
+<a href="http://www.w3.org/TR/2003/REC-xptr-framework-20030325/#dt-scheme"><span lang="en" xml:lang="en">scheme</span></a>
+にも対応できます。
+</p>
+
+<div class="note memo">
+<p>この界面やその実装はまだ検討中のもので、
+将来変更される可能性があります。必要があれば
+<a href="http://suika.fam.cx/gate/cvs/www/2005/xpointer-js/"
+lang="en" xml:lang="en"><abbr title="Concurrent Versions System">CVS</abbr>
+repository</a> の<a href="#FILES">配布ファイル</a>も参照して下さい。</p>
+</div>
+
+<dl class="dom-interface-definition">
+<dt id="DOM-IF-XPOINTEREVALUATOR">界面 <code class="DOMi"
+lang="en" xml:lang="en">XPointerEvaluator</code></dt>
+	<dd>
+	<div class="dom-interface-description">
+	<p>界面 <code class="DOMi"
+	lang="en" xml:lang="en">XPointerEvaluator</code> は
+	<abbr xml:lang="en" lang="en" title="XML Pointer Language">XPointer</abbr>
+	<a href="http://www.w3.org/TR/2003/REC-xptr-framework-20030325/#dt-pointer">指示子</a>を評価するためのメソッドを提供します。
+	この界面は<a href="http://www.w3.org/TR/2003/REC-xptr-framework-20030325/#dt-pointer">指示子</a>や<a href="http://www.w3.org/TR/2003/REC-xptr-framework-20030325/#dt-pointer">指示子</a>を評価する文脈となる文書とは独立したものです。</p>
+	<div class="example fig">
+	<div class="fig-body">
+	<p><span xml:lang="en" lang="en">JavaScript</span> では、構築子を使って次のようにこの界面を実装した物体を取得できます。</p>
+	<pre class="JS" lang="en" xml:lang="en">var xp = new XPointerEvaluator ();</pre>
+	</div>
+	<div class="caption"><code class="DOMi"
+	lang="en" xml:lang="en">XPointerEvaluator</code> 物体の構築</div>
+	</div><!-- example -->
+	</div><!-- dom-interface-description -->
+	<dl>
+	<dt>IDL 定義</dt>
+		<dd class="dom-interface-idl-definition">
+		<pre lang="en" xml:lang="en">interface XPointerEvaluator {
+  <a href="#DOM-IF-XPOINTERRESULT">XPointerResult</a>     <a href="#DOM-IF-XPOINTEREVALUATOR-EVALUATE">evaluate</a>(in Document contextDocument, 
+                              in DOMString xpointer)
+                                        raises(<a href="http://www.w3.org/TR/2004/NOTE-DOM-Level-3-XPath-20040226/xpath.html#XPathException">XPathException</a>);
+  <a href="#DOM-IF-XPOINTERSCHEMEPROCESSOR">XPointerSchemeProcessor</a>
+                     <a href="#DOM-IF-XPOINTEREVALUATOR-GETXPOINTERSCHEMEPROCESSOR">getXPointerSchemeProcessor</a>
+                             (in DOMString namespaceURI, 
+                              in DOMString localName);
+  void               <a href="#DOM-IF-XPOINTEREVALUATOR-SETXPOINTERSCHEMEPROCESSOR">setXPointerSchemeProcessor</a>
+                             (in DOMString namespaceURI, 
+                              in DOMString localName,
+                              in <a href="#DOM-IF-XPOINTERSCHEMEPROCESSOR">XPointerSchemeProcessor</a> sp);
+};</pre>
+		</dd>
+	<dt>メソッド</dt>
+		<dd>
+		<dl>
+		<dt id="DOM-IF-XPOINTEREVALUATOR-EVALUATE"><code class="DOMm" xml:lang="en" lang="en">evaluate</code></dt>
+			<dd class="dom-method-definition">
+			<div class="dom-method-description">
+			<p><abbr xml:lang="en" lang="en" title="XML Pointer Language">XPointer</abbr>
+			<a href="http://www.w3.org/TR/2003/REC-xptr-framework-20030325/#dt-pointer">指示子</a>を与えられた文書の元で評価し、
+			識別された部分資源を返します。</p>
+			</div>
+			<dl>
+			<dt>引数</dt>
+				<dd>
+				<dl>
+				<dt><code class="DOMp" xml:lang="en" lang="en">contextDocument</code>
+				(型 <code class="DOMi" xml:lang="en" lang="en">DOMDocument</code>)</dt>
+					<dd><abbr xml:lang="en" lang="en" title="XML Pointer Language">XPointer</abbr>
+					<a href="http://www.w3.org/TR/2003/REC-xptr-framework-20030325/#dt-pointer">指示子</a>を評価する文脈となる文書。</dd>
+				<dt><code class="DOMp" xml:lang="en" lang="en">xpointer</code>
+				(型 <code xml:lang="en" lang="en">DOMString</code>)</dt>
+					<dd>評価する <abbr xml:lang="en" lang="en" title="XML Pointer Language">XPointer</abbr> <a href="http://www.w3.org/TR/2003/REC-xptr-framework-20030325/#dt-pointer">指示子</a>。</dd>
+				</dl>
+				</dd>
+			<dt>返し値</dt>
+				<dd>
+				<dl>
+				<dt><a href="#DOM-IF-XPOINTERRESULT"><code class="DOMi" xml:lang="en" lang="en">XPointerResult</code></a></dt>
+					<dd><a href="http://www.w3.org/TR/2003/REC-xptr-framework-20030325/#dt-pointer">指示子</a>を評価して得られた結果。</dd>
+				</dl>
+				</dd>
+			<dt>例外</dt>
+				<dd>
+				<dl>
+				<dt><a href="http://www.w3.org/TR/2004/NOTE-DOM-Level-3-XPath-20040226/xpath.html#XPathException"><code class="DOMi" xml:lang="en" lang="en">XPathException</code></a></dt>
+					<dd><a href="http://www.w3.org/TR/2004/NOTE-DOM-Level-3-XPath-20040226/xpath.html#INVALID_EXPRESSION_ERR"><code class="dom-exception-code" xml:lang="en" lang="en">INVALID_EXPRESSION_ERR</code></a>:
+					<a href="http://www.w3.org/TR/2003/REC-xptr-framework-20030325/#dt-pointer">指示子</a>が不正であるか、
+					文書内のどの部分資源も識別しない時に発生します。</dd>
+				</dl>
+				</dd>
+			</dl>
+			</dd><!-- evaluate -->
+		<dt id="DOM-IF-XPOINTEREVALUATOR-GETXPOINTERSCHEMEPROCESSOR"><code class="DOMm" xml:lang="en" lang="en">getXPointerSchemeProcessor</code></dt>
+			<dd class="dom-method-definition">
+			<div class="dom-method-description">
+			<p>指定された 
+			<a href="http://www.w3.org/TR/2003/REC-xptr-framework-20030325/#dt-scheme"><abbr xml:lang="en" lang="en" title="XML Pointer Language">XPointer</abbr> <span lang="en" xml:lang="en">scheme</span></a>
+			の処理器を返します。</p>
+			</div>
+			<dl>
+			<dt>引数</dt>
+				<dd>
+				<dl>
+				<dt><code class="DOMp" xml:lang="en" lang="en">namespaceURI</code>
+				(型 <code xml:lang="en" lang="en">DOMString</code>)</dt>
+					<dd><a href="http://www.w3.org/TR/2003/REC-xptr-framework-20030325/#dt-scheme"><abbr xml:lang="en" lang="en" title="XML Pointer Language">XPointer</abbr> <span lang="en" xml:lang="en">scheme</span></a>
+					の<a href="http://www.w3.org/TR/2004/NOTE-DOM-Level-3-XPath-20040226/glossary.html#dt-namespaceURI">名前空間 <abbr title="Uniform Resource Identifiers" lang="en" xml:lang="en">URI</abbr></a>。
+					名前空間に属さないときは
+					<code xml:lang="en" lang="en">null</code> を指定します。
+					長さ0の文字列は <code xml:lang="en" lang="en">null</code>
+					と同じ意味です。</dd>
+				<dt><code class="DOMp" xml:lang="en" lang="en">localName</code>
+				(型 <code xml:lang="en" lang="en">DOMString</code>)</dt>
+					<dd><a href="http://www.w3.org/TR/2003/REC-xptr-framework-20030325/#dt-scheme"><abbr xml:lang="en" lang="en" title="XML Pointer Language">XPointer</abbr> <span lang="en" xml:lang="en">scheme</span></a>
+					の局所名。</dd>
+				</dl>
+				</dd>
+			<dt>返し値</dt>
+				<dd>
+				<dl>
+				<dt><a href="#DOM-IF-XPOINTERSCHEMEPROCESSOR"><code class="DOMi" xml:lang="en" lang="en">XPointerSchemeProcessor</code></a></dt>
+					<dd>指定された
+					<a href="http://www.w3.org/TR/2003/REC-xptr-framework-20030325/#dt-scheme" lang="en" xml:lang="en">scheme</a>
+					の処理器。
+					見つからなければ <code xml:lang="en" lang="en">null</code>。
+					<code class="DOMp" xml:lang="en" lang="en">namespaceURI</code> と
+					<code class="DOMp" xml:lang="en" lang="en">localName</code>
+					の両方が <code xml:lang="en" lang="en">null</code>
+					の時は、<a href="http://www.w3.org/TR/2003/REC-xptr-framework-20030325/#shorthand">速記指示子</a>用の処理器を返します。</dd>
+				</dl>
+				</dd>
+			<dt>例外なし</dt>
+			</dl>
+			</dd><!-- getXPointerSchemeProcessor -->
+		<dt id="DOM-IF-XPOINTEREVALUATOR-SETXPOINTERSCHEMEPROCESSOR"><code class="DOMm" xml:lang="en" lang="en">setXPointerSchemeProcessor</code></dt>
+			<dd class="dom-method-definition">
+			<div class="dom-method-description">
+			<p>指定された
+			<a href="http://www.w3.org/TR/2003/REC-xptr-framework-20030325/#dt-scheme"><abbr xml:lang="en" lang="en" title="XML Pointer Language">XPointer</abbr> <span lang="en" xml:lang="en">scheme</span></a>
+			の処理器を設定します。
+			既に処理器が登録されているときは置き換えます。</p>
+			</div>
+			<dl>
+			<dt>引数</dt>
+				<dd>
+				<dl>
+				<dt><code class="DOMp" xml:lang="en" lang="en">namespaceURI</code>
+				(型 <code xml:lang="en" lang="en">DOMString</code>)</dt>
+					<dd><a href="http://www.w3.org/TR/2003/REC-xptr-framework-20030325/#dt-scheme"><abbr xml:lang="en" lang="en" title="XML Pointer Language">XPointer</abbr> <span lang="en" xml:lang="en">scheme</span></a>
+					の<a href="http://www.w3.org/TR/2004/NOTE-DOM-Level-3-XPath-20040226/glossary.html#dt-namespaceURI">名前空間 <abbr title="Uniform Resource Identifiers" lang="en" xml:lang="en">URI</abbr></a>。
+					名前空間に属さないときは
+					<code xml:lang="en" lang="en">null</code> を指定します。
+					長さ0の文字列は <code xml:lang="en" lang="en">null</code>
+					と同じ意味です。</dd>
+				<dt><code class="DOMp" xml:lang="en" lang="en">localName</code>
+				(型 <code xml:lang="en" lang="en">DOMString</code>)</dt>
+					<dd><a href="http://www.w3.org/TR/2003/REC-xptr-framework-20030325/#dt-scheme"><abbr xml:lang="en" lang="en" title="XML Pointer Language">XPointer</abbr> <span lang="en" xml:lang="en">scheme</span></a>
+					の局所名。</dd>
+				<dt><code class="DOMp" xml:lang="en" lang="en">sp</code>
+				(型 <a href="#DOM-XPOINTERSCHEMEPROCESSOR"><code class="DOMi" xml:lang="en" lang="en">XPointerSchemeProcessor</code></a>)</dt>
+					<dd>設定する 
+					<a href="http://www.w3.org/TR/2003/REC-xptr-framework-20030325/#dt-scheme"><abbr xml:lang="en" lang="en" title="XML Pointer Language">XPointer</abbr> <span lang="en" xml:lang="en">scheme</span></a>
+					処理器。</dd>
+				</dl>
+				</dd>
+			<dt>返し値なし</dt>
+			<dt>例外なし</dt>
+			</dl>
+			</dd><!-- setXPointerSchemeProcessor -->
+		</dl>
+		</dd>
+	</dl>
+	</dd><!-- XPointerEvaluator -->
+<dt id="DOM-IF-XPOINTERSCHEMEPROCESSOR">界面 <code class="DOMi"
+lang="en" xml:lang="en">XPointerSchemeProcessor</code></dt>
+	<dd>
+	<div class="dom-interface-description">
+	<p>界面 <code class="DOMi"
+	lang="en" xml:lang="en">XPointerSchemeProcessor</code>
+	を実装した物体は、
+	<a href="#DOM-IF-XPOINTEREVALUATOR-SETXPOINTERSCHEMEPROCESSOR"><code xml:lang="en" lang="en"><code class="DOMi">XPointerEvaluator</code>.<code class="DOMm">setXPointerSchemeProcessor</code></code></a> を使って
+	<a href="#DOM-IF-XPOINTEREVALUATOR"><code class="DOMi" xml:lang="en" lang="en">XPointerEvaluator</code></a>
+	に登録して特定の <a href="http://www.w3.org/TR/2003/REC-xptr-framework-20030325/#dt-scheme"><span lang="en" xml:lang="en">scheme</span></a> 
+	の<a href="http://www.w3.org/TR/2003/REC-xptr-framework-20030325/#NT-SchemeData">データ</a>を処理させることができます。</p>
+	<div class="example fig">
+	<div class="fig-body">
+	<p><span xml:lang="en" lang="en">JavaScript</span> では、構築子を使って次のようにこの界面を実装した物体を作成できます。</p>
+	<pre class="JS" lang="en" xml:lang="en">var sp = new XPointerSchemeProcessor (function (doc, context, data) {
+  /* <a href="#DOM-IF-XPOINTERSCHEMEPROCESSOR-EVALUATE">XPointerSchemeProcessor.evaluate</a> メソッドの実装 */
+});</pre>
+	</div>
+	<div class="caption"><code class="DOMi"
+	lang="en" xml:lang="en">XPointerSchemeProcessor</code> 物体の構築</div>
+	</div><!-- example -->
+	</div><!-- dom-interface-description -->
+	<dl>
+	<dt>IDL 定義</dt>
+		<dd class="dom-interface-idl-definition">
+		<pre lang="en" xml:lang="en">interface XPointerSchemeProcessor {
+  <a href="#DOM-IF-XPOINTERRESULT">XPointerResult</a>     <a href="#DOM-IF-XPOINTERSCHEMEPROCESSOR-EVALUATE">evaluate</a>(in Document contextDocument, 
+                              in <a href="#DOM-IF-XPOINTERSCHEMECONTEXT">XPointerSchemeContext</a> schemeContext,
+                              in DOMString schemeData);
+};</pre>
+		</dd>
+	<dt>メソッド</dt>
+		<dd>
+		<dl>
+		<dt id="DOM-IF-XPOINTERSCHEMEPROCESSOR-EVALUATE"><code class="DOMm" xml:lang="en" lang="en">evaluate</code></dt>
+			<dd class="dom-method-definition">
+			<div class="dom-method-description">
+			<p>与えられた <a href="http://www.w3.org/TR/2003/REC-xptr-framework-20030325/#NT-SchemeData"><span lang="en" xml:lang="en">scheme</span> データ</a>を評価し、
+			識別された部分資源を返します。</p>
+			</div>
+			<dl>
+			<dt>引数</dt>
+				<dd>
+				<dl>
+				<dt><code class="DOMp" xml:lang="en" lang="en">contextDocument</code>
+				(型 <code class="DOMi" xml:lang="en" lang="en">Document</code>)</dt>
+					<dd>評価する文脈となる文書。</dd>
+				<dt><code class="DOMp" xml:lang="en" lang="en">schemeContext</code>
+				(型 <a href="#DOM-IF-XPOINTERSCHEMECONTEXT"><code class="DOMi" xml:lang="en" lang="en">XPointerSchemeContext</code></a>)</dt>
+					<dd>評価するための <abbr xml:lang="en" lang="en" title="XML Pointer Language">XPointer</abbr> の文脈情報。</dd>
+				<dt><code class="DOMp" xml:lang="en" lang="en">schemeData</code>
+				(型 <code xml:lang="en" lang="en">DOMString</code>)</dt>
+					<dd>評価する <abbr xml:lang="en" lang="en" title="XML Pointer Language">XPointer</abbr> <a href="http://www.w3.org/TR/2003/REC-xptr-framework-20030325/#NT-SchemeData"><span lang="en" xml:lang="en">scheme</span> データ</a>。
+					<a href="http://www.w3.org/TR/2003/REC-xptr-framework-20030325/#NT-EscapedData">文字 <code class="char">^</code>
+					による逃避</a>は元に戻された状態で渡されます。</dd>
+				</dl>
+				</dd>
+			<dt>返し値</dt>
+				<dd>
+				<dl>
+				<dt><a href="#DOM-IF-XPOINTERRESULT"><code class="DOMi" xml:lang="en" lang="en">XPointerResult</code></a></dt>
+					<dd>評価した結果の部分資源。
+					部分資源が識別された場合には
+					<a href="#DOM-IF-XPOINTERRESULT-HASSUBRESOURCES"><code xml:lang="en" lang="en"><code class="DOMi">XPointerResult</code>.<code class="DOMa">hasSubresources</code></code></a>
+					は <code xml:lang="en" lang="en">true</code>、そうでない場合には
+					<code xml:lang="en" lang="en">false</code> にします。</dd>
+				</dl>
+				</dd>
+			<dt>例外なし</dt>
+			</dl>
+			</dd><!-- evaluate -->
+		</dl>
+		</dd>
+	</dl>
+	</dd><!-- XPointerSchemeProcessor -->
+<dt id="DOM-IF-XPOINTERSCHEMECONTEXT">界面 <code class="DOMi"
+lang="en" xml:lang="en">XPointerSchemeContext</code></dt>
+	<dd>
+	<div class="dom-interface-description">
+	<p>界面 <code class="DOMi"
+	lang="en" xml:lang="en">XPointerSchemeContext</code> は、
+	<a href="#DOM-IF-XPOINTERSCHEMEPROCESSOR"><code class="DOMi"
+	lang="en" xml:lang="en">XPointerSchemeProcessor</code></a>
+	が <a href="http://www.w3.org/TR/2003/REC-xptr-framework-20030325/#NT-SchemeData"><span lang="en" xml:lang="en">scheme</span> データ</a>を評価するために必要な文脈を提供します。</p>
+	<div class="note memo">
+	<p>現在この界面は<a href="http://www.w3.org/TR/2003/REC-xptr-framework-20030325/#dt-nsbinding">名前空間束縛文脈</a>の情報だけを提供していますが、
+	将来の版では更に他の文脈情報も提供するかもしれません。</p>
+	</div><!-- note -->
+	</div><!-- dom-interface-description -->
+	<dl>
+	<dt>IDL 定義</dt>
+		<dd class="dom-interface-idl-definition">
+		<pre lang="en" xml:lang="en">interface XPointerSchemeContext {
+  DOMString          <a href="#DOM-IF-XPOINTERSCHEMECONTEXT-LOOKUPNAMESPACEURI">lookupNamespaceURI</a>(in DOMString prefix);
+  void               <a href="#DOM-IF-XPOINTERSCHEMECONTEXT-ADDNAMESPACEBINDING">addNamespaceBinding</a>(in DOMString prefix, 
+                                         in DOMString namespaceURI);
+};</pre>
+		</dd>
+	<dt>メソッド</dt>
+		<dd>
+		<dl>
+		<dt id="DOM-IF-XPOINTERSCHEMECONTEXT-LOOKUPNAMESPACEURI"><code class="DOMm" xml:lang="en" lang="en">lookupNamespaceURI</code></dt>
+			<dd class="dom-method-definition">
+			<div class="dom-method-description">
+			<p>与えられた<a href="http://www.w3.org/TR/2004/NOTE-DOM-Level-3-XPath-20040226/glossary.html#dt-namespaceprefix">名前空間接頭辞</a>に関連付けられた<a href="http://www.w3.org/TR/2004/NOTE-DOM-Level-3-XPath-20040226/glossary.html#dt-namespaceURI">名前空間 <abbr title="Uniform Resource Identifiers" lang="en" xml:lang="en">URI</abbr></a>
+			を調べます。</p>
+			<div class="note memo">
+			<p><a href="http://www.w3.org/TR/2004/NOTE-DOM-Level-3-XPath-20040226/glossary.html#dt-namespaceprefix">名前空間接頭辞</a>として <code xml:lang="en" lang="en">null</code> や空文字列が与えられた時の結果は未定義とします。
+			将来の版では定義するかもしれません。</p>
+			</div><!-- note -->
+			</div>
+			<dl>
+			<dt>引数</dt>
+				<dd>
+				<dl>
+				<dt><code class="DOMp" xml:lang="en" lang="en">prefix</code>
+				(型 <code xml:lang="en" lang="en">DOMString</code>)</dt>
+					<dd>調べる<a href="http://www.w3.org/TR/2004/NOTE-DOM-Level-3-XPath-20040226/glossary.html#dt-namespaceprefix">名前空間接頭辞</a>。</dd>
+				<dt><code class="DOMp" xml:lang="en" lang="en">xpointer</code>
+				(型 <code xml:lang="en" lang="en">DOMString</code>)</dt>
+					<dd>評価する <abbr xml:lang="en" lang="en" title="XML Pointer Language">XPointer</abbr> <a href="http://www.w3.org/TR/2003/REC-xptr-framework-20030325/#dt-pointer">指示子</a>。</dd>
+				</dl>
+				</dd>
+			<dt>返し値</dt>
+				<dd>
+				<dl>
+				<dt><code xml:lang="en" lang="en">DOMString</code></dt>
+					<dd>関連付けられている<a href="http://www.w3.org/TR/2004/NOTE-DOM-Level-3-XPath-20040226/glossary.html#dt-namespaceURI">名前空間 <abbr title="Uniform Resource Identifiers" lang="en" xml:lang="en">URI</abbr></a>。
+					なければ <code xml:lang="en" lang="en">null</code>。</dd>
+				</dl>
+				</dd>
+			<dt>例外なし</dt>
+			</dl>
+			</dd><!-- lookupNamespaceURI -->
+		<dt id="DOM-IF-XPOINTERSCHEMECONTEXT-ADDNAMESPACEBINDING"><code class="DOMm" xml:lang="en" lang="en">addNamespaceBinding</code></dt>
+			<dd class="dom-method-definition">
+			<div class="dom-method-description">
+			<p><a href="http://www.w3.org/TR/2004/NOTE-DOM-Level-3-XPath-20040226/glossary.html#dt-namespaceprefix">名前空間接頭辞</a>に<a href="http://www.w3.org/TR/2004/NOTE-DOM-Level-3-XPath-20040226/glossary.html#dt-namespaceURI">名前空間 <abbr title="Uniform Resource Identifiers" lang="en" xml:lang="en">URI</abbr></a> を束縛します。
+			追加された束縛は、同じ<a href="http://www.w3.org/TR/2003/REC-xptr-framework-20030325/#dt-pointer">指示子</a>の以後の
+			<a href="http://www.w3.org/TR/2003/REC-xptr-framework-20030325/#dt-scheme"><span lang="en" xml:lang="en">scheme</span></a>
+			の評価 <span class="weak">(行われる場合。)</span> 
+			でも有効です。</p>
+			<div class="note memo">
+			<p><a href="http://www.w3.org/TR/2004/NOTE-DOM-Level-3-XPath-20040226/glossary.html#dt-namespaceprefix">名前空間接頭辞</a>として <code xml:lang="en" lang="en">null</code> や空文字列が与えられた時の結果は未定義とします。
+			将来の版では定義するかもしれません。</p>
+			</div><!-- note -->
+			</div>
+			<dl>
+			<dt>引数</dt>
+				<dd>
+				<dl>
+				<dt><code class="DOMp" xml:lang="en" lang="en">prefix</code>
+				(型 <code xml:lang="en" lang="en">DOMString</code>)</dt>
+					<dd>束縛する<a href="http://www.w3.org/TR/2004/NOTE-DOM-Level-3-XPath-20040226/glossary.html#dt-namespaceprefix">名前空間接頭辞</a>。</dd>
+				<dt><code class="DOMp" xml:lang="en" lang="en">namespaceURI</code>
+				(型 <code xml:lang="en" lang="en">DOMString</code>)</dt>
+					<dd>束縛する<a href="http://www.w3.org/TR/2004/NOTE-DOM-Level-3-XPath-20040226/glossary.html#dt-namespaceURI">名前空間 <abbr title="Uniform Resource Identifiers" lang="en" xml:lang="en">URI</abbr></a>。
+					名前空間なしなら <code xml:lang="en" lang="en">null</code>。</dd>
+				</dl>
+				</dd>
+			<dt>返し値なし</dt>
+			<dt>例外なし</dt>
+			</dl>
+			</dd><!-- addNamespaceBinding -->
+		</dl>
+		</dd>
+	</dl>
+	</dd><!-- XPointerSchemeContext -->
+<dt id="DOM-IF-XPOINTERRESULT">界面 <code class="DOMi"
+lang="en" xml:lang="en">XPointerResult</code></dt>
+	<dd>
+	<div class="dom-interface-description">
+	<p><a href="http://www.w3.org/TR/2003/REC-xptr-framework-20030325/#dt-pointer">指示子</a>を評価した結果は <code class="DOMi" xml:lang="en" lang="en">XPointerResult</code>
+	を実装した物体によって返されます。
+	この物体をどう実装するかはその実装に依存します。</p>
+	<div class="note memo">
+	<p>結果を返す方法には更に検討が必要です。
+	将来の版では界面が変更されるかもしれません。</p>
+	</div>
+	<div class="example fig">
+	<div class="fig-body">
+	<p><span xml:lang="en" lang="en">JavaScript</span> では、便宜上新しい <code class="DOMi" xml:lang="en" lang="en">XPointerResult</code>
+	を生成するための静的メソッドを用意しています。</p>
+	<pre class="JS" lang="en" xml:lang="en"><code class="comment" lang="ja" xml:lang="ja" id="JS-XPOINTERRESULT-CREATEEMPTYXPOINTERRESULT">// 空 (一致する部分資源なし) の結果</code>
+result = XPointerResult.createEmptyeXPointerResult ();
+<code class="comment" lang="ja" xml:lang="ja" id="JS-XPOINTERRESULT-CREATENODEXPOINTERRESULT">// 節点が1つだけの結果</code>
+<code class="comment" lang="ja" xml:lang="ja">// <var lang="en" xml:lang="en">code</var> が <code lang="en" xml:lang="en">null</code> なら <a href="#JS-XPOINTERRESULT-CREATEEMPTYXPOINTERRESULT"><code lang="en" xml:lang="en">createEmptyXPointerResult</code></a> と同じ</code>
+result = XPointerResult.createNodeXPointerResult (node);<!--
+<code class="comment" lang="ja" xml:lang="ja" id="JS-XPOINTERRESULT-CREATENODESNAPSHOTXPOINTERRESULT">// 複数の節点の結果 (スナップ写真)</code>
+result = XPointerResult.createNodeSnapshotXPointerResult (nodelist);--></pre>
+	</div>
+	<div class="caption"><code class="DOMi"
+	lang="en" xml:lang="en">XPointerResult</code> 物体の構築</div>
+	</div><!-- example -->
+	</div><!-- dom-interface-description -->
+	<dl>
+	<dt>IDL 定義</dt>
+		<dd class="dom-interface-idl-definition">
+		<pre lang="en" xml:lang="en">interface XPointerResult {
+
+  <code class="comment">// XPointerResultType</code>
+  const unsigned short      <a href="http://www.w3.org/TR/2004/NOTE-DOM-Level-3-XPath-20040226/xpath.html#XPathResult-UNORDERED-NODE-ITERATOR-TYPE">UNORDERED_NODE_ITERATOR_TYPE</a>   = 4;
+  const unsigned short      <a href="http://www.w3.org/TR/2004/NOTE-DOM-Level-3-XPath-20040226/xpath.html#XPathResult-ORDERED-NODE-ITERATOR-TYPE">ORDERED_NODE_ITERATOR_TYPE</a>     = 5;
+  const unsigned short      <a href="http://www.w3.org/TR/2004/NOTE-DOM-Level-3-XPath-20040226/xpath.html#XPathResult-UNORDERED-NODE-SNAPSHOT-TYPE">UNORDERED_NODE_SNAPSHOT_TYPE</a>   = 6;
+  const unsigned short      <a href="http://www.w3.org/TR/2004/NOTE-DOM-Level-3-XPath-20040226/xpath.html#XPathResult-ORDERED-NODE-SNAPSHOT-TYPE">ORDERED_NODE_SNAPSHOT_TYPE</a>     = 7;
+  const unsigned short      <a href="http://www.w3.org/TR/2004/NOTE-DOM-Level-3-XPath-20040226/xpath.html#XPathResult-ANY-UNORDERED-NODE-TYPE">ANY_UNORDERED_NODE_TYPE</a>        = 8;
+  const unsigned short      <a href="http://www.w3.org/TR/2004/NOTE-DOM-Level-3-XPath-20040226/xpath.html#XPathResult-FIRST-ORDERED-NODE-TYPE">FIRST_ORDERED_NODE_TYPE</a>        = 9;
+  
+  readonly attribute unsigned short  <a href="http://www.w3.org/TR/2004/NOTE-DOM-Level-3-XPath-20040226/xpath.html#XPathResult-resultType">resultType</a>;
+  readonly attribute Node            <a href="http://www.w3.org/TR/2004/NOTE-DOM-Level-3-XPath-20040226/xpath.html#XPathResult-singleNodeValue">singleNodeValue</a>;
+                                        <code class="comment">// raises(<a href="http://www.w3.org/TR/2004/NOTE-DOM-Level-3-XPath-20040226/xpath.html#XPathException">XPathException</a>) on retrieval</code>
+<!--
+  readonly attribute unsigned long   snapshotLength;
+                                        // raises(XPathException) on retrieval
+
+  Node               snapshotItem(in unsigned long index)
+                                        raises(XPathException);
+-->  readonly attribute boolean         <a href="#DOM-IF-XPOINTERRESULT-HASSUBRESOURCES">hasSubresources</a>;
+};</pre>
+		</dd>
+	<dt>属性</dt>
+		<dd>
+		<dl>
+		<dt id="DOM-IF-XPOINTERRESULT-HASSUBRESOURCES"><code class="DOMa" xml:lang="en" lang="en">hasSubresources</code>
+		(型 <code xml:lang="en" lang="en">boolean</code>, 読取専用)</dt>
+			<dd class="dom-attr-definition">
+			<div class="dom-attr-description">
+			<p><a href="http://www.w3.org/TR/2003/REC-xptr-framework-20030325/#dt-pointer">指示子</a>が文書の部分資源を識別し、
+			その結果をこの物体が持っているのであれば
+			<code xml:lang="en" lang="en">true</code>、そうでなければ <code xml:lang="en" lang="en">false</code>。</p>
+			</div>
+			</dd><!-- hasSubresources -->
+		</dl>
+		</dd>
+	</dl>
+	</dd><!-- XPointerResult -->
+</dl>
+
+</div><!-- #API -->
+
+<div class="section" id="EXAMPLE">
+<h2>例</h2>
+
+<div class="section" id="EXAMPLE-STYLECHANGE">
+<h3>スタイル・シートの変更</h3>
+
+<p><abbr xml:lang="en" lang="en" title="Hypertext Markup Language">HTML</abbr> 
+にはスタイル・シート <span class="weak">(の組)</span> 
+を利用者が選択できる機能が備わっていますが、
+これを素片識別子から選択することを試みます。まずは使用例をご覧下さい。</p>
+
+<ul>
+<li><a href="example-stylechange">使用例</a></li>
+<li><a href="example-stylechange-link">使用例へのリンクがある文書</a></li>
+<li><a href="example-stylechange-script.js" type="application/x-javascript">使用例で参照している外部
+<span xml:lang="en" lang="en">JavaScript</span> のコード</a></li>
+</ul>
+
+<p>この例では、名前によってスタイル・シートを選択する
+<a href="#XPOINTER-SCHEME-STYLE"><code class="XPointerScheme" xml:lang="en" lang="en"><code class="qname"><abbr class="qname-prefix" title="&lt;http://suika.fam.cx/~wakaba/archive/2005/3/style/&gt;">style</abbr>:<code class="qname-local-name">style</code></code>()</code></a>
+という 
+<a href="http://www.w3.org/TR/2003/REC-xptr-framework-20030325/#dt-scheme"><span lang="en" xml:lang="en">scheme</span></a>
+などを
+<a href="#DOM-IF-XPOINTERSCHEMEPROCESSOR"><code class="DOMi" xml:lang="en" lang="en">XPointerSchemeProcessor</code></a>
+の実装によって導入しています。<a href="example-stylechange">使用例</a>や<a href="example-stylechange-link">使用例へのリンクがある文書</a>にあるリンクは、
+この <a href="http://www.w3.org/TR/2003/REC-xptr-framework-20030325/#dt-scheme"><span lang="en" xml:lang="en">scheme</span></a>
+を使った素片識別子を使っています。</p>
+
+<p>スクリプトでは、文書が読み込まれた時とリンクが活性化された時に関数
+<code class="JS" lang="en" xml:lang="en">reevaluateFragment()</code>
+を実行するように指定しています。この関数は素片識別子から <abbr xml:lang="en" lang="en" title="XML Pointer Language">XPointer</abbr>
+を取り出し、 <abbr xml:lang="en" lang="en" title="XML Pointer Language">XPointer</abbr> 処理器に渡します。</p>
+
+<div class="fig" id="XPOINTER-SCHEME-STYLE">
+<div class="fig-body">
+
+<dl class="xpointer-scheme-definition">
+<dt>名前空間名</dt>
+	<dd><code class="uri">&lt;<a href="http://suika.fam.cx/~wakaba/archive/2005/3/style/">http://suika.fam.cx/~wakaba/archive/2005/3/style/</a>&gt;</code></dd>
+<dt>局所名</dt>
+	<dd><code>style</code></dd>
+<dt><a href="http://www.w3.org/TR/2003/REC-xptr-framework-20030325/#NT-SchemeData">データ</a>の構文
+(<a href="http://www.w3.org/TR/2003/REC-xptr-framework-20030325/#NT-EscapedData">逃避</a>を戻す前)</dt>
+	<dd><code class="ABNF"><a href="http://www.w3.org/TR/2003/REC-xptr-framework-20030325/#NT-SchemeData">SchemeData</a></code></dd>
+<dt>識別する部分資源</dt>
+	<dd>なし</dd>
+<dt>副作用</dt>
+	<dd><a href="http://www.w3.org/TR/2003/REC-xptr-framework-20030325/#NT-SchemeData">データ</a>として指定された文字列
+	<span class="weak">(0文字以上の任意の文字の列)</span>
+	と一致する名前
+	(<a href="http://www.w3.org/TR/1999/REC-html401-19991224/present/styles.html#specifying-external"><code class="HTMLa">title</code> 属性</a>)
+	の<a href="http://www.w3.org/TR/1999/REC-html401-19991224/present/styles.html#h-14.3.1">代替スタイル・シート
+	<span class="weak">(優先スタイル・シートを含みます。)</span></a>
+	の集合を有効にし、他の<a href="http://www.w3.org/TR/1999/REC-html401-19991224/present/styles.html#h-14.3.1">代替スタイル・シート
+	<span class="weak">(優先スタイル・シートを含みます。)</span></a>
+	を無効にします。</dd>
+</dl>
+
+</div>
+<div class="caption">スタイル選択の
+<abbr xml:lang="en" lang="en" title="XML Pointer Language">XPointer</abbr> <span lang="en" xml:lang="en">scheme</span>
+の定義</div>
+</div><!-- fig -->
+
+
+<div class="fig" id="XPOINTER-SCHEME-TITLE">
+<div class="fig-body">
+
+<dl class="xpointer-scheme-definition">
+<dt>名前空間名</dt>
+	<dd><code class="uri">&lt;<a href="http://suika.fam.cx/~wakaba/archive/2005/3/window/">http://suika.fam.cx/~wakaba/archive/2005/3/window/</a>&gt;</code></dd>
+<dt>局所名</dt>
+	<dd><code>title</code></dd>
+<dt><a href="http://www.w3.org/TR/2003/REC-xptr-framework-20030325/#NT-SchemeData">データ</a>の構文
+(<a href="http://www.w3.org/TR/2003/REC-xptr-framework-20030325/#NT-EscapedData">逃避</a>を戻す前)</dt>
+	<dd><code class="ABNF"><a href="http://www.w3.org/TR/2003/REC-xptr-framework-20030325/#NT-SchemeData">SchemeData</a></code></dd>
+<dt>識別する部分資源</dt>
+	<dd>なし</dd>
+<dt>副作用</dt>
+	<dd><a href="http://www.w3.org/TR/2003/REC-xptr-framework-20030325/#NT-SchemeData">データ</a>として指定された文字列
+	<span class="weak">(0文字以上の任意の文字の列)</span>
+	を文書の題として使用する。</dd>
+<dt>安全性について</dt>
+	<dd>他の手段とあわせて悪用される虞があり、注意が必要です。</dd>
+</dl>
+
+</div>
+<div class="caption">題を変更する
+<abbr xml:lang="en" lang="en" title="XML Pointer Language">XPointer</abbr> <span lang="en" xml:lang="en">scheme</span>
+の定義</div>
+</div><!-- fig -->
+
+
+<div class="fig" id="XPOINTER-SCHEME-DOCUMENT">
+<div class="fig-body">
+
+<dl class="xpointer-scheme-definition">
+<dt>名前空間名</dt>
+	<dd><code class="uri">&lt;<a href="http://suika.fam.cx/~wakaba/archive/2005/3/xpointer/">http://suika.fam.cx/~wakaba/archive/2005/3/xpointer/</a>&gt;</code></dd>
+<dt>局所名</dt>
+	<dd><code>document</code></dd>
+<dt><a href="http://www.w3.org/TR/2003/REC-xptr-framework-20030325/#NT-SchemeData">データ</a>の構文
+(<a href="http://www.w3.org/TR/2003/REC-xptr-framework-20030325/#NT-EscapedData">逃避</a>を戻す前)</dt>
+	<dd>常に空文字列</dd>
+<dt>識別する部分資源</dt>
+	<dd>文書全体</dd>
+<dt>副作用</dt>
+	<dd>なし</dd>
+<dt>メモ</dt>
+	<dd>他の 
+	<a href="http://www.w3.org/TR/2003/REC-xptr-framework-20030325/#dt-scheme"><span lang="en" xml:lang="en">scheme</span></a>
+	の副作用を利用した後で特に部分資源を識別しない時に、
+	<a href="http://www.w3.org/TR/2003/REC-xptr-framework-20030325/#dt-pointer">指示子</a>全体が失敗とならないように利用できます。</dd>
+</dl>
+
+</div>
+<div class="caption">常に文書を選択する
+<abbr xml:lang="en" lang="en" title="XML Pointer Language">XPointer</abbr> <span lang="en" xml:lang="en">scheme</span>
+の定義</div>
+</div><!-- fig -->
+
+</div><!-- #EXAMPLE-STYLECHANGE -->
+
+</div><!-- #EXAMPLE -->
+
+<div class="section" id="SEMANTICS">
+<h2>素片識別子と <abbr xml:lang="en" lang="en" title="XML Pointer Language">XPointer</abbr> の意味論に関して</h2>
+
+<p>
+<abbr lang="en" xml:lang="en" title="Uniform Resource Identifier">URI</abbr>
+の素片識別子は資源の一部分や見え方を識別します 
+<cite class="bibref">[<a href="#QUOTE-RFC3986" lang="en" xml:lang="en"><abbr
+title="Request for Comments">RFC</abbr> 3986</a>]</cite>。
+<a href="http://www.w3.org/TR/2003/REC-xptr-framework-20030325/#dt-scheme" lang="en" xml:lang="en"><abbr xml:lang="en" lang="en" title="XML Pointer Language">XPointer</abbr>
+scheme</a>
+はほとんどどんな指示でも与えることができますが、
+この意味から逸脱しない範囲にとどめるべきです。
+</p>
+
+<div class="fig quote" id="QUOTE-RFC3986">
+<div class="fig-body">
+<blockquote cite="urn:ietf:rfc:3986" lang="en" xml:lang="en">
+<p>The fragment identifier component of a URI allows indirect
+   identification of a secondary resource by reference to a primary
+   resource and additional identifying information.  The identified
+   secondary resource may be some portion or subset of the primary
+   resource, some view on representations of the primary resource, or
+   some other resource defined or described by those representations.</p>
+</blockquote>
+<div class="credit" lang="en" xml:lang="en"><abbr title="Request for Comments">RFC</abbr>
+3986 <cite>Uniform Resource Identifier (URI): Generic Syntax</cite> 
+3.5.  Fragment</div>
+</div>
+</div><!-- fig -->
+
+<p>また、素片識別子の構文はその資源の媒体型によって定義されることになっています。
+使用する文書の媒体型の定義にできるだけ沿った形で利用するべきです。</p>
+
+</div><!-- #SEMANTICS -->
+
+<div class="section" id="SECURITY">
+<h2>安全性に関して</h2>
+
+<p>
+<span lang="en" xml:lang="en">Web</span> ブラウザにおける表示などを
+<abbr lang="en" xml:lang="en" title="Uniform Resource Identifier">URI</abbr>
+の一部により制御可能とすると、なりすましなどに悪用される危険性があります。
+<a href="http://www.w3.org/TR/2003/REC-xptr-framework-20030325/#dt-scheme" lang="en" xml:lang="en"><abbr xml:lang="en" lang="en" title="XML Pointer Language">XPointer</abbr>
+scheme</a> の設計は慎重に行うべきです。
+</p>
+</div><!-- #SECURITY -->
+
+<div class="section" id="RESTRICTIONS">
+<h2>制限事項</h2>
+
+<ul>
+<li>
+<abbr xml:lang="en" lang="en" title="Hypertext Markup Language">HTML</abbr> や
+<abbr lang="en" xml:lang="en" title="Extensible Markup Language">XML</abbr>
+の文書で <span lang="en" xml:lang="en">Web</span> ブラウザを通して利用する場合、
+<a href="#EXAMPLE-STYLECHANGE">スタイル・シートの例</a>で行っているように、
+文書の読込み時などに素片識別子を
+<abbr xml:lang="en" lang="en" title="XML Pointer Language">XPointer</abbr>
+として解釈します。しかし、一度頁を読んだ後、
+頁内のリンクをたどったりブラウザの <abbr lang="en" xml:lang="en"
+title="Uniform Resource Identifier">URI</abbr> 欄から直接素片識別子だけ修正したりしても、
+文書の再読込みが起こらないと 
+<abbr xml:lang="en" lang="en" title="XML Pointer Language">XPointer</abbr>
+の再解釈は行われません。頁内リンクの場合は<a href="#EXAMPLE-STYLECHANGE">スタイル・シートの例</a>のようにリンクをたどる際にスクリプトを実行することで回避できますが、
+ブラウザの <abbr lang="en" xml:lang="en"
+title="Uniform Resource Identifier">URI</abbr> 欄や履歴の移動に対処するよい方法はいまのところありません。
+<span class="weak">(<code class="JS" lang="en" xml:lang="en">setTimeout</code>
+で定期的に確認すれば解決できるでしょうが...)</span>
+</li>
+<li>
+現在の実装は
+<abbr xml:lang="en" lang="en" title="XML Pointer Language">XPointer</abbr>
+の解釈が正確ではありません。
+<a href="http://www.w3.org/TR/REC-xml-names/#NT-NCName">名前文字</a>の検査が厳密ではないので、
+本来認められるべきではないものが<a href="http://www.w3.org/TR/2003/REC-xptr-framework-20030325/#dt-error">誤り</a>にならないことがあります。
+また、正規表現を使って実装しているので、括弧の入れ子に完全には対処できません。
+現在の実装では三重 <span class="weak">(全体で四重)</span> 
+の入れ子までしか正しく扱えません。また、途中の<a href="http://www.w3.org/TR/2003/REC-xptr-framework-20030325/#dt-pointerpart">指示子部分</a>まで解釈して部分資源が識別されれば、
+残りの部分の評価は行わないので、構文が正しいことも調べません。
+</li>
+</ul>
+</div><!-- #RESTRICTIONS -->
+
+<div class="section" id="FILES">
+<h2 lang="en" xml:lang="en">関連ファイル</h2>
+
+<p><a href="./">この階層</a>にあるファイルが関連する実装や使用例です。</p>
+<p>各ファイルは <a href="http://suika.fam.cx/gate/cvs/www/2005/xpointer-js/"
+><abbr lang="en" xml:lang="en"
+title="Concurrent Versions System">CVS</abbr>
+で版管理しています</a>。</p>
+</div>
+
+<div class="section" id="LICENSE">
+<h2 lang="en" xml:lang="en">License</h2>
+
+<p><a href="#FILES">関連するファイル</a>は
+<q lang="en" xml:lang="en">Perl/MPL 1.1/GPL 2.0/LGPL 2.1</q>
+で配布しています。詳しくは各ファイルの注釈をご覧下さい。</p>
+</div>
+
+<div class="section" id="RELATED">
+<h2>関連する資源</h2>
+
+<dl>
+<dt><a href="http://suika.fam.cx/gate/2005/sw/xpointer.js" lang="en"
+xml:lang="en">xpointer.js</a> <span class="weak">(<a 
+href="http://suika.fam.cx/gate/2005/sw/">SuikaWiki</a>)</span></dt>
+	<dd>ご意見, 不具合情報等はこちらまでお願いします。</dd>
+<dt><a href="http://suika.fam.cx/gate/2005/sw/XPointer/API" lang="en"
+xml:lang="en">XPointer//API</a> <span class="weak">(<a 
+href="http://suika.fam.cx/gate/2005/sw/">SuikaWiki</a>)</span></dt>
+	<dd><abbr xml:lang="en" lang="en" title="XML Pointer Language">XPointer</abbr> を扱うための界面についての話題を扱っています。</dd>
+<dt><a href="http://www.mozdev.org/source/browse/annozilla/src/content/annozilla/xpointer.js"
+lang="en" xml:lang="en">CVS log for annozilla/src/content/annozilla/xpointer.js</a></dt>
+	<dd>古い版の <a href="http://annozilla.mozdev.org/" lang="en"
+	xml:lang="en">Annozilla</a> は独自の <span lang="en" 
+	xml:lang="en">ad hoc</span> な <abbr xml:lang="en" lang="en" title="XML Pointer Language">XPointer</abbr> の <span xml:lang="en" lang="en">JavaScript</span>
+	による実装を行っていました。 (現在は <a lang="en" xml:lang="en"
+	href="http://xpointerlib.mozdev.org/">XPointerLib</a>
+	を使用しているようです。)</dd>
+<dt><a href="http://ma.la/mirrorman/wiki.cgi/location.hash#line0"><code class="JS" lang="en" 
+	xml:lang="en">location.hash</code>
+を使ったセッション復元関連。</a></dt>
+	<dd>素片識別子に <span lang="en" xml:lang="en">Web</span> 
+	頁のセッション関連の情報を保存しようという試みです。</dd>
+</dl>
+</div><!-- #RELATED -->
+
+
+<div class="footer">
+<div class="navigation">
+[<a href="/">/</a> <a href="/www/" lang="en" xml:lang="en">Web</a>]
+</div>
+<div class="update" lang="en" xml:lang="en">$Date: 2005/03/13 10:24:13 $</div>
+</div>
+</body>
+</html>
+
+<!-- Revision: $Date: 2005/03/13 10:24:13 $ -->
+
+<!-- ***** BEGIN LICENSE BLOCK *****
+   - Copyright 2005 Wakaba <w@suika.fam.cx>.  All rights reserved.
+   -
+   - This program is free software; you can redistribute it and/or 
+   - modify it under the same terms as Perl itself.
+   -
+   - Alternatively, the contents of this file may be used 
+   - under the following terms (the "MPL/GPL/LGPL"), 
+   - in which case the provisions of the MPL/GPL/LGPL are applicable instead
+   - of those above. If you wish to allow use of your version of this file only
+   - under the terms of the MPL/GPL/LGPL, and not to allow others to
+   - use your version of this file under the terms of the Perl, indicate your
+   - decision by deleting the provisions above and replace them with the notice
+   - and other provisions required by the MPL/GPL/LGPL. If you do not delete
+   - the provisions above, a recipient may use your version of this file under
+   - the terms of any one of the Perl or the MPL/GPL/LGPL.
+   -
+   - "MPL/GPL/LGPL":
+   -
+   - Version: MPL 1.1/GPL 2.0/LGPL 2.1
+   -
+   - The contents of this file are subject to the Mozilla Public License Version
+   - 1.1 (the "License"); you may not use this file except in compliance with
+   - the License. You may obtain a copy of the License at
+   - <http://www.mozilla.org/MPL/>
+   -
+   - Software distributed under the License is distributed on an "AS IS" basis,
+   - WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+   - for the specific language governing rights and limitations under the
+   - License.
+   -
+   - The Original Code is xpointer-js code.
+   -
+   - The Initial Developer of the Original Code is Wakaba.
+   - Portions created by the Initial Developer are Copyright (C) 2005
+   - the Initial Developer. All Rights Reserved.
+   -
+   - Contributor(s):
+   -   Wakaba <w@suika.fam.cx>
+   -
+   - Alternatively, the contents of this file may be used under the terms of
+   - either the GNU General Public License Version 2 or later (the "GPL"), or
+   - the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+   - in which case the provisions of the GPL or the LGPL are applicable instead
+   - of those above. If you wish to allow use of your version of this file only
+   - under the terms of either the GPL or the LGPL, and not to allow others to
+   - use your version of this file under the terms of the MPL, indicate your
+   - decision by deleting the provisions above and replace them with the notice
+   - and other provisions required by the LGPL or the GPL. If you do not delete
+   - the provisions above, a recipient may use your version of this file under
+   - the terms of any one of the MPL, the GPL or the LGPL.
+   -
+   - ***** END LICENSE BLOCK ***** -->

@@ -1,0 +1,51 @@
+dl.dom-interface-definition {
+  display: block;
+}
+
+dl.dom-interface-definition dl {
+  margin: 0;
+  padding: 0;
+}
+
+dl.dom-interface-definition dt {
+  display: block;
+  margin-left: 0;
+  padding-left: 0;
+  font-weight: bolder;
+}
+
+dl.dom-interface-definition dd {
+  display: block;
+  margin-left: 3em;
+  padding-left: 0;
+}
+
+.dom-interface-definition dt .DOMa {
+  color: black;
+  background-color: #FFFFD2;
+}
+.dom-interface-definition dt .DOM .const {
+  color: black;
+  background-color: #DDFFD2;
+}
+.dom-interface-definition dt .DOMm {
+  color: black;
+  background-color: #D9E6F8;
+}
+.dom-interface-definition dt .DOMp {
+  background-color: #FEE6F8; 
+  color: black;
+}
+
+.dom-interface-idl-definition pre {
+  border: 1px solid black;
+  padding: 2em 3em;
+  background-color: #dfdfdf;
+  color: black;
+  white-space: pre;
+  font-family: monospace;
+}
+
+.dom-interface-definition p:first-child {
+  text-indent: 0;
+}
