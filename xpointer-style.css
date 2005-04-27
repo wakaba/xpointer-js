@@ -1,3 +1,5 @@
+/* XPointer scheme definitions */
+
 dl.xpointer-scheme-definition {
   display: block;
   border-style: none;
@@ -35,7 +37,26 @@ dl.xpointer-scheme-definition {
   clear: both;
 }
 
-/* Revision: $Date: 2005/03/14 00:40:15 $ */
+/* Links to XPointer specifications */
+
+a[href^="http://www.w3.org/TR/2003/REC-xptr-framework-20030325/"]:after,
+a[href^="http://www.w3.org/TR/2004/NOTE-DOM-Level-3-XPath-20040226/"]:after {
+  content: "xp";
+  vertical-align: super;
+  color: gray;
+  background-color: transparent;
+  font-size: x-small;
+  line-height: 1.0;
+  font-family: "Times New Roman", serif;
+  text-decoration: none;
+  border-style: none;
+}
+
+a[href^="http://www.w3.org/TR/2004/NOTE-DOM-Level-3-XPath-20040226/"]:after {
+  content: "dom";
+}
+
+/* Revision: $Date: 2005/04/27 01:33:25 $ */
 
 /* ***** BEGIN LICENSE BLOCK *****
  * Copyright 2005 Wakaba <w@suika.fam.cx>.  All rights reserved.
