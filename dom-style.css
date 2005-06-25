@@ -50,8 +50,16 @@ dl.dom-interface-definition dd {
   text-indent: 0;
 }
 
+.dom-interface-definition .fig p {
+  text-indent: 1em;
+}
 
-/* Revision: $Date: 2005/03/14 00:40:15 $ */
+.dom-interface-definition .memo p:first-child {
+  text-indent: -3em;
+}
+
+
+/* Revision: $Date: 2005/06/25 14:05:40 $ */
 
 /* ***** BEGIN LICENSE BLOCK *****
  * Copyright 2005 Wakaba <w@suika.fam.cx>.  All rights reserved.
