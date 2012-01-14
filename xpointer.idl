@@ -1,0 +1,48 @@
+interface XPointerEvaluator {
+  XPointerResult     evaluate(in Document contextDocument, 
+                              in DOMString xpointer)
+                                        raises(XPathException);
+  XPointerSchemeProcessor
+                     getXPointerSchemeProcessor
+                             (in DOMString namespaceURI, 
+                              in DOMString localName);
+  void               setXPointerSchemeProcessor
+                             (in DOMString namespaceURI, 
+                              in DOMString localName,
+                              in XPointerSchemeProcessor sp);
+};
+
+interface XPointerSchemeProcessor {
+  XPointerResult     evaluate(in Document contextDocument, 
+                              in XPointerSchemeContext schemeContext,
+                              in DOMString schemeData);
+};
+
+interface XPointerSchemeContext {
+  DOMString          lookupNamespaceURI(in DOMString prefix);
+  void               addNamespaceBinding(in DOMString prefix, 
+                                         in DOMString namespaceURI);
+};
+
+interface XPointerResult {
+
+  // XPointerResultType
+  const unsigned short      UNORDERED_NODE_ITERATOR_TYPE   = 4;
+  const unsigned short      ORDERED_NODE_ITERATOR_TYPE     = 5;
+  const unsigned short      UNORDERED_NODE_SNAPSHOT_TYPE   = 6;
+  const unsigned short      ORDERED_NODE_SNAPSHOT_TYPE     = 7;
+  const unsigned short      ANY_UNORDERED_NODE_TYPE        = 8;
+  const unsigned short      FIRST_ORDERED_NODE_TYPE        = 9;
+  
+  readonly attribute unsigned short  resultType;
+  readonly attribute Node            singleNodeValue;
+                                        // raises(XPathException) on retrieval
+  readonly attribute boolean         hasSubresources;
+};
+
+/*
+
+Author: Wakaba <w@suika.fam.cx>.
+License: Public Domain.
+
+*/
